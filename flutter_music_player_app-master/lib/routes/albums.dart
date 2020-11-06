@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_music_player_app/PlayerArguments.dart';
-import 'package:flutter_music_player_app/SizeConfig.dart';
+import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/models/PlayerArguments.dart';
+import 'package:flutter_music_player_app/routes/musichome.dart';
 
 class Albums extends StatefulWidget {
   Albums({Key key, this.title}) : super(key: key);
 
   final String title;
-
+  final musichome = MusicHome();
   @override
   _AlbumsState createState() => _AlbumsState();
 }
 
 class _AlbumsState extends State<Albums> {
+
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +21,15 @@ class _AlbumsState extends State<Albums> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+
+            Padding(
+              padding: const EdgeInsets.only(left: 20.0,top: 30),
+              child: Text("Favourites", style: TextStyle(
+                  color: Colors.black,
+                  fontFamily: 'Nunito-Regular',
+                  fontSize: 20
+              ),),
+            ),
             Padding(
               padding: const EdgeInsets.only(left: 20.0, top: 20.0),
               child: Container(
@@ -34,6 +44,12 @@ class _AlbumsState extends State<Albums> {
                     _albumCard("assets/notimetodiebe.jpg"),
                     SizedBox(width: 10.0,),
                     _albumCard("assets/billiebadguy.jpg"),
+                    SizedBox(width: 10.0,),
+                    _albumCard("assets/godzillaeminem.png"),
+                    SizedBox(width: 10.0,),
+                    _albumCard("assets/notimetodiebe.jpg"),
+                    SizedBox(width: 10.0,),
+                    _seeMoreAlbumCard(context),
                     SizedBox(width: 10.0,),
                   ],
                 ),
@@ -95,6 +111,42 @@ class _AlbumsState extends State<Albums> {
             ),
           )
         ],
+      ),
+    );
+  }
+
+
+  _seeMoreAlbumCard(BuildContext context) {
+    return InkWell(
+      onTap: (){
+        Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) {
+          return MusicHome(initialPage: 3,);
+        }),
+        );
+        },
+      child: Container(
+        height: 150,
+        width: 150,
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15.0)
+        ),
+        child: Stack(
+          overflow: Overflow.visible,
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15.0),
+              child: Image.asset("assets/More.jpg", fit: BoxFit.cover, height: 150,width: 150, ),
+            ),
+            Positioned(
+              bottom: 10.0,
+              left: 10.0,
+              child: CircleAvatar(
+                backgroundColor: Colors.white70,
+                child: Icon(Icons.play_arrow, color: Colors.white,),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
