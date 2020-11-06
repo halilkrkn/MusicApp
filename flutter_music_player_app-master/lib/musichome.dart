@@ -31,7 +31,7 @@ class _MusicHomeState extends State<MusicHome> with SingleTickerProviderStateMix
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 50.0),
+            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 35.0),
             child: Row(
               children: <Widget>[
                 Icon(Icons.search, color: Colors.black,),

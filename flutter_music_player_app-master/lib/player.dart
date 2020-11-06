@@ -44,7 +44,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
       body: Column(
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 50.0),
+            padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 40.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
@@ -88,11 +88,11 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
           ),),
           Spacer(),
           Padding(
-            padding: const EdgeInsets.only(left: 30.0, right: 30.0, top: 20.0),
+            padding: const EdgeInsets.only(left: 30.0, right: 30.0, top: 25.0),
             child: Slider(
-              activeColor: Colors.orangeAccent,
+              activeColor: Colors.red,
               value: _value,
-              inactiveColor: Colors.grey,
+              inactiveColor: Colors.blue,
               onChanged: _setValue,
             ),
           ),
@@ -102,20 +102,20 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                Icon(Icons.fast_rewind, color: Colors.black,),
+                Icon(Icons.fast_rewind, color: Colors.black87,),
                 CircleAvatar(
-                  backgroundColor: Colors.black87,
-                  radius: 40.0,
+                  backgroundColor: Colors.deepOrange,
+                  radius: 30.0,
                   child: IconButton(
-                    iconSize: 50,
-                  color: Colors.white,
+                    iconSize: 30,
+                  color: Colors.black,
                   icon: AnimatedIcon(icon: AnimatedIcons.play_pause, progress: animationController),
                     onPressed: (){
                       _handleOnPressed();
                     },
                   ),
                 ),
-                Icon(Icons.fast_forward, color: Colors.black,)
+                Icon(Icons.fast_forward, color: Colors.black87,)
               ],
             ),
           )
