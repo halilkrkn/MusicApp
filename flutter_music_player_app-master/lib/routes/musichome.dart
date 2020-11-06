@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player_app/models/PlayerArguments.dart';
 import 'package:flutter_music_player_app/routes/favourites.dart';
-import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/albums.dart';
-import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/artists.dart';
+import 'package:flutter_music_player_app/routes/routes/albums.dart';
+import 'package:flutter_music_player_app/routes/routes/artists.dart';
 
 import 'folders.dart';
 
