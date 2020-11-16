@@ -1,10 +1,15 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_music_player_app/models/GetSongs.dart';
 import 'package:flutter_music_player_app/models/PlayerArguments.dart';
+import 'package:flutter_music_player_app/models/PlayerNowPlaying.dart';
 import 'package:flutter_music_player_app/routes/favourites.dart';
-import 'package:flutter_music_player_app/routes/routes/albums.dart';
-import 'package:flutter_music_player_app/routes/routes/artists.dart';
-
+import 'package:flutter_music_player_app/screens/player.dart';
+import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/albums.dart';
+import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/artists.dart';
 import 'folders.dart';
 
 
@@ -19,12 +24,23 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   static TabController tabController;
   AnimationController animationController;
   bool isPlaying = false;
+  AudioPlayer audioPlayer = AudioPlayer();
+  NowPlayingSong nw;
+  StreamSubscription _onPlayerStateChanged;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     tabController = TabController(length: 4, vsync: this,initialIndex: widget.initialPage);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
+    _onPlayerStateChanged =  audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        if(state == AudioPlayerState.PAUSED)
+          animationController.reverse();
+        else if(state == AudioPlayerState.PLAYING)
+          animationController.forward();
+      });
+    });
   }
 
   @override
@@ -96,7 +112,7 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
               child: TabBarView(
                 controller: tabController,
                   children: <Widget>[
-                    Albums(),
+                    Albums(audioPlayer: audioPlayer),
                     Artists(),
                     Folders(),
                     Favourites(),
@@ -107,15 +123,11 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
             alignment: Alignment.bottomCenter,
             child:  InkWell(
               onTap: (){
-                Navigator.pushReplacementNamed(
-                  context,
-                  '/player',
-                );
               },
               child: ClipRRect(
                 borderRadius: BorderRadius.only(topRight: Radius.circular(15.0),topLeft: Radius.circular(15.0)),
                 child: Container(
-                  height: 68,
+                  height: 65,
                   width : width,
                   color: Colors.orange,
                   child: Padding(
@@ -125,24 +137,21 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
                       children: [
                         _albumCard("assets/dontdualipa.jpg"),
                         SizedBox(width: 10.0,),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text('Music Name', style: TextStyle(
-                                  fontFamily: 'Nunito',
-                                  fontSize: 20,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold
-                              ),),
-                              Text('artist', style: TextStyle(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text('Music Name', style: TextStyle(
                                 fontFamily: 'Nunito',
-                                fontSize: 15,
+                                fontSize: 20,
                                 color: Colors.black,
-                              ),),
-                            ],
-                          ),
+                                fontWeight: FontWeight.bold
+                            ),),
+                            Text('artist', style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),),
+                          ],
                         ),
                         Spacer(),
                         CircleAvatar(
@@ -185,12 +194,17 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
     );
   }
 
-  void _handleOnPressed() {
-    setState(() {
-      isPlaying = !isPlaying;
-      isPlaying
-          ? animationController.forward()
-          :animationController.reverse();
+  void _handleOnPressed(){ //oynat durdur basıldığında çalışan kısım
+    setState(() async {
+      var state = audioPlayer.state;
+      if(state == AudioPlayerState.PAUSED){
+        await audioPlayer.resume();
+        animationController.reverse();
+      }
+      else if(state == AudioPlayerState.PLAYING){
+        await audioPlayer.pause();
+        animationController.forward();
+      }
     });
   }
 

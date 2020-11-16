@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_music_player_app/models/SizeConfig.dart';
-import 'package:flutter_music_player_app/screens/player.dart';
+import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/models/SizeConfig.dart';
+import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/screens/player.dart';
 
 
 class ArtistsDetail extends StatefulWidget {
