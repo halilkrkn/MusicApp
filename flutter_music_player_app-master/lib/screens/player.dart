@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +14,8 @@ class Player extends StatefulWidget {
   final String image;
   final String duration;
   final String songPath;
-  final AudioPlayer player;
-  final List<Song> playlistsongs;
+  final AssetsAudioPlayer player;
+  final Playlist playlistsongs;
   final int index;
   @override
   _PlayerState createState() => _PlayerState();
@@ -27,10 +28,10 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   String title;
   String artist;
   String albumImage;
-  String songduration;
+  Duration songduration;
   String url;
-  AudioPlayer audioPlayer;
-  List<Song> songs;
+  AssetsAudioPlayer audioPlayer;
+  Playlist playList;
   int index;
   String durationnow = "0";
   StreamSubscription _playerCompleteSubscription;
@@ -39,20 +40,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   StreamSubscription _playerDurationSubscription;
   StreamSubscription _onPlayerStateChanged;
   GlobalKey<FlipCardState> cardKey;
-  @override
-  void onResume() {
-    // Implement your code inside here
 
-    audioPlayer.setUrl(songs[index].url);
-    audioPlayer.seek(Duration(milliseconds: durationOnPause));
-  }
-
-  @override
-  void onPause() {
-    // Implement your code inside here
-
-    print('HomeScreen is paused!');
-  }
 
   AnimationController animationController;
   bool isPlaying = true;
@@ -68,67 +56,20 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
     title = widget.songName;
     artist = widget.singer;
     albumImage = widget.image;
-    songduration = widget.duration;
     url = widget.songPath;
     audioPlayer = widget.player;
-    songs = widget.playlistsongs;
+    playList = widget.playlistsongs;
     index = widget.index;
-    songduration = widget.duration;
+
     print(index);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
-    _playerCompleteSubscription =
-        audioPlayer.onPlayerCompletion.listen((event) async{
-          if(index != songs.length-1)
-            await audioPlayer.play(songs[++index].url, isLocal: true);
-          else if(index == songs.length-1){
-            index = 0;
-            await audioPlayer.play(songs[index].url, isLocal: true);
-          }
-          setState(() {
-            title = songs[index].title;
-            artist = songs[index].artist;
-            songduration = songs[index].duration;
-            durationnow = "0";
-          });
-        });
-    _playerDurationSubscription = audioPlayer.onAudioPositionChanged.listen((Duration  p) => {
-      setState(() {
-        durationnow = p.inMilliseconds.toString();
-        durationOnPause = p.inMilliseconds;
-        durationnow = formatMillitoDisplay(durationnow);
-      }),
-    });
-    _onPlayerStateChanged =  audioPlayer.onPlayerStateChanged.listen((state) {
-      setState(() {
-        if(state == AudioPlayerState.PAUSED)
-          animationController.reverse();
-        else if(state == AudioPlayerState.PLAYING)
-          animationController.forward();
-      });
-    });
-    _positionSubscription =
-        audioPlayer.onAudioPositionChanged.listen((p) => setState(() {
-          _position = p;
-        }));
-    _durationSubscription = audioPlayer.onDurationChanged.listen((duration) {
-      setState(() => _duration = duration);
-    });
-    audioPlayer.startHeadlessService();
 
-    // set at least title to see the notification bar on ios.
-    audioPlayer.setNotification(
-      title: 'KontraMusicPlayer',
-      artist: artist,
-      albumTitle: title,
-      imageUrl: albumImage,
-      // forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-      // backwardSkipInterval: const Duration(seconds: 30), // default is 30s
-      duration: Duration(milliseconds: int.parse(songduration)),
-      elapsedTime: Duration(seconds: 0),
-      hasNextTrack: true,
-      hasPreviousTrack: false,
-    );
-    audioPlayer.play(url, isLocal: true); //başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
+    audioPlayer.open(
+        playList,
+        loopMode: LoopMode.playlist //loop the full playlist
+    );//başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
+
+    songduration = audioPlayer.current.value.audio.duration;
     cardKey = GlobalKey<FlipCardState>();
   }
 
@@ -274,7 +215,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                       },
                     ),
                   ),
-                  Text(formatMillitoDisplay(songduration), style: TextStyle( //şarkıcı
+                  Text(songduration.toString(), style: TextStyle( //şarkıcı
                     fontFamily: 'Nunito-Bold',
                     letterSpacing: 1.0,
                     fontSize: 10,
@@ -291,19 +232,14 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                 children: <Widget>[
                   InkWell(
                     onTap : () async{ //geri tuşu
-                      index--;
-                      if(index > 0) {
-                        await audioPlayer.play(
-                            songs[index].url, isLocal: true);
-                      }
-                      else if(index == -1){
-                        index = 0;
-                      }
+
+                      audioPlayer.previous(keepLoopMode: true);
+
                       setState(() { //tıklandığında müziğin isminin, albüm resminin ve sarkıcısının değişmesi
-                        title = songs[index].title;
-                        artist = songs[index].artist;
-                        songduration = songs[index].duration;
-                        formatMillitoDisplay(songduration);
+                        title = audioPlayer.current.value.audio.audio.metas.title;
+                        artist = audioPlayer.current.value.audio.audio.metas.artist;
+                        songduration = audioPlayer.current.value.audio.duration;
+
                       });
                       print(index);
                     },
@@ -326,19 +262,13 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                   ),
                   InkWell(
                     onTap: () async {
-                      index++;//ileri gitmek için geri gitmeyle aynı
-                      if(index < songs.length) {
-                        await audioPlayer.play(
-                            songs[++index].url, isLocal: true);
-                      }
-                      else if(index == songs.length){
-                        index = songs.length-1;
-                      }
+                      //ileri gitmek için geri gitmeyle aynı
+                      audioPlayer.next(keepLoopMode:true);
+
                       setState(() {
-                        title = songs[index].title;
-                        artist = songs[index].artist;
-                        songduration = songs[index].duration;
-                        formatMillitoDisplay(songduration);
+                        title = audioPlayer.current.value.audio.audio.metas.title;
+                        artist = audioPlayer.current.value.audio.audio.metas.artist;
+                        songduration = audioPlayer.current.value.audio.duration;
                       });
                     },
                     child: CircleAvatar(
@@ -367,22 +297,22 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
 
 
   Future<bool> _onBackPressed() async{
-    NowPlayingSong nw = new NowPlayingSong(songs[index].id, songs[index].title, songs[index].artist, songs[index].duration, songs[index].url, songs[index].photo,audioPlayer);
-    Navigator.pop(context,nw); //geri tuşuna basıldığında songs kısmına dönmek için
+    Navigator.pop(context); //geri tuşuna basıldığında songs kısmına dönmek için
     return true;
   }
 
   void _handleOnPressed(){ //oynat durdur basıldığında çalışan kısım
     setState(() async {
-      var state = audioPlayer.state;
-      if(state == AudioPlayerState.PAUSED){
-        await audioPlayer.resume();
+      audioPlayer.playOrPause();
+
+      if(audioPlayer.playerState.value == PlayerState.play){
         animationController.reverse();
       }
-      else if(state == AudioPlayerState.PLAYING){
-        await audioPlayer.pause();
+      else if(audioPlayer.playerState.value == PlayerState.pause){
+
         animationController.forward();
       }
+
     });
   }
 }

@@ -1,3 +1,6 @@
+import 'dart:ffi';
+
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -9,8 +12,8 @@ import 'dart:async';
 import 'package:flutter_music_player_app/screens/player.dart';
 
 class Albums extends StatefulWidget {
-  Albums({Key key, this.title, this.audioPlayer) : super(key: key);
-  final AudioPlayer audioPlayer;
+  Albums({Key key, this.title, this.audioPlayer}) : super(key: key);
+  final AssetsAudioPlayer audioPlayer;
   final String title;
   final musichome = MusicHome();
   @override
@@ -24,23 +27,38 @@ class _AlbumsState extends State<Albums> {
   int i = 0;
   bool songsadded = false;
   List<Song> songs = [];
+  List<String> durations = [];
+  Playlist playlist;
+
 
   final FlutterAudioQuery audioQuery = FlutterAudioQuery();
 
-  Future<List<Song>> getSongProperties() async {
+  //Şarkının Özelliklerini getirme
+  Future<Playlist> getSongProperties() async {
     var songsquery = await audioQuery.getSongs();
+    await addSongsToPlaylist(songsquery);
+    return playlist;
+}
+
+  Future<Void> addSongsToPlaylist(var songsquery) async {
     if(songsadded == false) {
       for (var s in songsquery) {
-        Song tempsong = Song(s.id, s.title, s.artist, s.duration,s.filePath,s.albumArtwork);
-        songs.add(tempsong);
+
+        Audio temp = new Audio(s.filePath,metas:Metas(
+            title: s.title,
+            artist: s.artist,
+            image: MetasImage.file(s.albumArtwork)
+        ));
+        durations.add(s.duration);
+        playlist.add(temp);
       }
       songsadded = true;
     }
-    print(songs.length);
   }
 
   @override
   void initState() {
+
     // TODO: implement initState
    super.initState();
   }
@@ -53,6 +71,7 @@ class _AlbumsState extends State<Albums> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 0, 10),
           child: Container(
+            // Songs Kısmı
             child : Text("Songs", textAlign: TextAlign.left,style: TextStyle(
                 color: Colors.black,
                 fontFamily: 'Nunito-Regular',
@@ -65,11 +84,12 @@ class _AlbumsState extends State<Albums> {
     );
   }
 
+  // Play List
   Widget getPlaylistList(){
     return FutureBuilder(
       future: getSongProperties(),
       builder: (context,AsyncSnapshot snapshot){
-        if(songs.length <= 0){
+        if(playlist.audios == null){
           return Center(child: Container(
             height: 50,
               width: 50,
@@ -77,9 +97,9 @@ class _AlbumsState extends State<Albums> {
         }
         else{
           return ListView.builder(
-            itemCount: songs.length,
+            itemCount: playlist.audios.length,
             itemBuilder: (BuildContext context,int index){
-              return Padding(padding: EdgeInsets.fromLTRB(8, 0, 8, 8),child : playListCard("assets/godzillaeminem.png" ,songs[index].title,songs[index].artist,songs[index].duration,songs[index].url,index));
+              return Padding(padding: EdgeInsets.fromLTRB(8, 0, 8, 8),child : playListCard("assets/godzillaeminem.png" ,playlist.audios[index].metas.title,playlist.audios[index].metas.artist,durations[index],playlist.audios[index].path,index));
             },
           );
         }
@@ -87,66 +107,16 @@ class _AlbumsState extends State<Albums> {
     );
   }
 
-  Widget favoritesListView(index){
-    return Row(children: <Widget>[
-
-      _albumCard(favourites[index]),
-      SizedBox(width: 10.0,),
-    ],);
-  }
-
-  List<String> favourites = [
-  ];
-
-  Widget _favouriteEmpty() {
-    return Container(
-      height: 120,
-      width: 120,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15.0)
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15.0),
-        child: Image.asset("assets/favourite.jpg", fit: BoxFit.cover, height: 150,width: 150, ),
-      ),
-    );
-  }
-
-  _albumCard(String assetImg) {
-    return Container(
-      height: 120,
-      width: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15.0)
-      ),
-      child: Stack(
-        overflow: Overflow.visible,
-        children: <Widget>[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15.0),
-            child: Image.asset(assetImg, fit: BoxFit.cover, height: 150,width: 150, ),
-          ),
-          Positioned(
-            bottom: 10.0,
-            left: 10.0,
-            child: CircleAvatar(
-              backgroundColor: Colors.white70,
-              child: Icon(Icons.play_arrow, color: Colors.white,),
-            ),
-          )
-        ],
-      ),
-    );
-  }
 
 
+  // Songs - PLayList Kısmı
   playListCard(String asset, String title, String artist, String duration,String url,int index) {
     final alreadySaved = favourites.contains(title);
     return InkWell(
       onTap: (){
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player: widget.audioPlayer,playlistsongs: songs,index: index,)),
+          MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player:widget.audioPlayer,playlistsongs: playlist,index: index,)),
         );
       },
       child: Container(
@@ -154,7 +124,7 @@ class _AlbumsState extends State<Albums> {
           children: <Widget>[
             ClipRRect(
               borderRadius: BorderRadius.circular(10.0),
-              child: Image.asset(asset, fit: BoxFit.cover, height:70, width: 90,),
+              child: Image.asset(asset, fit: BoxFit.cover, height:70, width: 70,),
             ),
             SizedBox(width: 10.0,),
             Column(
@@ -201,7 +171,62 @@ class _AlbumsState extends State<Albums> {
     );
   }
 
+  // Şarkıları Favorileme Kısmı
+  Widget favoritesListView(index){
+    return Row(children: <Widget>[
 
+      _albumCard(favourites[index]),
+      SizedBox(width: 10.0,),
+    ],);
+  }
+
+  List<String> favourites = [
+  ];
+
+  Widget _favouriteEmpty() {
+    return Container(
+      height: 120,
+      width: 120,
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15.0)
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15.0),
+        child: Image.asset("assets/favourite.jpg", fit: BoxFit.cover, height: 150,width: 150, ),
+      ),
+    );
+  }
+
+  // Albüm Card Kısmı
+  _albumCard(String assetImg) {
+    return Container(
+      height: 120,
+      width: 120,
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15.0)
+      ),
+      child: Stack(
+        overflow: Overflow.visible,
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(15.0),
+            child: Image.asset(assetImg, fit: BoxFit.cover, height: 150,width: 150, ),
+          ),
+          Positioned(
+            bottom: 10.0,
+            left: 10.0,
+            child: CircleAvatar(
+              backgroundColor: Colors.white70,
+              child: Icon(Icons.play_arrow, color: Colors.white,),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+
+  // Daha Fazla Albüm İÇin Albumler Kısmına Yönlendirme
   _seeMoreAlbumCard(BuildContext context) {
     return InkWell(
       onTap: (){

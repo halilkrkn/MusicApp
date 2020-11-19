@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +9,9 @@ import 'package:flutter_music_player_app/models/PlayerArguments.dart';
 import 'package:flutter_music_player_app/models/PlayerNowPlaying.dart';
 import 'package:flutter_music_player_app/routes/favourites.dart';
 import 'package:flutter_music_player_app/screens/player.dart';
-import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/albums.dart';
-import 'file:///C:/Users/turk_/Desktop/flutter_music_player_app-master/lib/routes/artists.dart';
+
+import 'albums.dart';
+import 'artists.dart';
 import 'folders.dart';
 
 
@@ -24,7 +26,7 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   static TabController tabController;
   AnimationController animationController;
   bool isPlaying = false;
-  AudioPlayer audioPlayer = AudioPlayer();
+  AssetsAudioPlayer player = AssetsAudioPlayer.newPlayer();
   NowPlayingSong nw;
   StreamSubscription _onPlayerStateChanged;
   @override
@@ -33,14 +35,6 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
     super.initState();
     tabController = TabController(length: 4, vsync: this,initialIndex: widget.initialPage);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
-    _onPlayerStateChanged =  audioPlayer.onPlayerStateChanged.listen((state) {
-      setState(() {
-        if(state == AudioPlayerState.PAUSED)
-          animationController.reverse();
-        else if(state == AudioPlayerState.PLAYING)
-          animationController.forward();
-      });
-    });
   }
 
   @override
@@ -112,7 +106,7 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
               child: TabBarView(
                 controller: tabController,
                   children: <Widget>[
-                    Albums(audioPlayer: audioPlayer),
+                    Albums(audioPlayer: player),
                     Artists(),
                     Folders(),
                     Favourites(),
@@ -195,17 +189,17 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   }
 
   void _handleOnPressed(){ //oynat durdur basıldığında çalışan kısım
-    setState(() async {
-      var state = audioPlayer.state;
-      if(state == AudioPlayerState.PAUSED){
-        await audioPlayer.resume();
-        animationController.reverse();
-      }
-      else if(state == AudioPlayerState.PLAYING){
-        await audioPlayer.pause();
-        animationController.forward();
-      }
-    });
+    // setState(() async {
+    //  // var state = audioPlayer.state;
+    //   if(state == AudioPlayerState.PAUSED){
+    //     await audioPlayer.resume();
+    //     animationController.reverse();
+    //   }
+    //   else if(state == AudioPlayerState.PLAYING){
+    //     await audioPlayer.pause();
+    //     animationController.forward();
+    //   }
+    // });
   }
 
   void _nextPage(int tab) {
