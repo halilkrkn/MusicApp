@@ -8,14 +8,14 @@ import 'package:flutter_music_player_app/models/Song.dart';
 
 
 class Player extends StatefulWidget {
-  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.playlistsongs, this.index}) : super(key: key);
+  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.songs, this.index}) : super(key: key);
   final String songName;
   final String singer;
   final String image;
   final String duration;
   final String songPath;
   final AssetsAudioPlayer player;
-  final Playlist playlistsongs;
+  final List<Song> songs;
   final int index;
   @override
   _PlayerState createState() => _PlayerState();
@@ -28,19 +28,15 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
   String title;
   String artist;
   String albumImage;
-  Duration songduration;
+  String songduration;
   String url;
   AssetsAudioPlayer audioPlayer;
   Playlist playList;
   int index;
   String durationnow = "0";
-  StreamSubscription _playerCompleteSubscription;
-  StreamSubscription _durationSubscription;
-  StreamSubscription _positionSubscription;
-  StreamSubscription _playerDurationSubscription;
-  StreamSubscription _onPlayerStateChanged;
+  List<Audio> audiosongs = [];
   GlobalKey<FlipCardState> cardKey;
-
+  final List<StreamSubscription> _subscriptions = [];
 
   AnimationController animationController;
   bool isPlaying = true;
@@ -58,19 +54,60 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
     albumImage = widget.image;
     url = widget.songPath;
     audioPlayer = widget.player;
-    playList = widget.playlistsongs;
-    index = widget.index;
 
+    getAudios().then((List<Audio> result){
+    });
+    index = widget.index;
     print(index);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
 
     audioPlayer.open(
-        playList,
-        loopMode: LoopMode.playlist //loop the full playlist
-    );//başlangıçta tıklanınca gelinen dosya yolunu alıp oynatıyorum
-
-    songduration = audioPlayer.current.value.audio.duration;
+        Playlist(
+            audios: audiosongs,
+            startIndex: index,
+        ),
+        loopMode: LoopMode.playlist,
+        showNotification: true,
+        headPhoneStrategy: HeadPhoneStrategy.pauseOnUnplug,
+        //loop the full playlist
+    );
+    _subscriptions.add(audioPlayer.playlistFinished.listen((data) {
+    }));
+    _subscriptions.add(audioPlayer.playlistAudioFinished.listen((data) {
+      title = data.audio.audio.metas.title;
+      artist = data.audio.audio.metas.artist;
+    }));
+    _subscriptions.add(audioPlayer.current.listen((data) {
+      _duration = data.audio.duration;
+      title = data.audio.audio.metas.title;
+      artist = data.audio.audio.metas.artist;
+    }));
+    _subscriptions.add(audioPlayer.onReadyToPlay.listen((audio) {
+      print("onRedayToPlay : $audio");
+      setState(() {
+        title = audio.audio.metas.title;
+        artist = audio.audio.metas.artist;
+        _duration = audio.duration;
+      });
+    }));
+    _subscriptions.add(audioPlayer.currentPosition.listen((position) {
+      setState(() {
+        _position = position;
+      });
+    }));
     cardKey = GlobalKey<FlipCardState>();
+  }
+
+  Future<List<Audio>> getAudios() async{
+    for(Song s in widget.songs){
+      Audio temp = new Audio.file(s.url,metas:Metas(
+          title: s.title,
+          artist: s.artist,
+          image: MetasImage.file(s.photo)
+      ));
+      audiosongs.add(temp);
+    }
+    return audiosongs;
   }
 
   @override
@@ -190,7 +227,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
               padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 20.0),
               child: Row(
                 children: [
-                  Text(durationnow, style: TextStyle( //şarkıcı
+                  Text(_position == null ? "00:00" : formatMillitoDisplay(_position.inMilliseconds.toString()), style: TextStyle( //şarkıcı
                     fontFamily: 'Nunito-Bold',
                     letterSpacing: 1.0,
                     fontSize:10,
@@ -215,7 +252,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                       },
                     ),
                   ),
-                  Text(songduration.toString(), style: TextStyle( //şarkıcı
+                  Text(_duration == null ? "00:00" : formatMillitoDisplay(_duration.inMilliseconds.toString()), style: TextStyle( //şarkıcı
                     fontFamily: 'Nunito-Bold',
                     letterSpacing: 1.0,
                     fontSize: 10,
@@ -232,14 +269,10 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                 children: <Widget>[
                   InkWell(
                     onTap : () async{ //geri tuşu
-
                       audioPlayer.previous(keepLoopMode: true);
-
                       setState(() { //tıklandığında müziğin isminin, albüm resminin ve sarkıcısının değişmesi
                         title = audioPlayer.current.value.audio.audio.metas.title;
                         artist = audioPlayer.current.value.audio.audio.metas.artist;
-                        songduration = audioPlayer.current.value.audio.duration;
-
                       });
                       print(index);
                     },
@@ -254,7 +287,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                     child: IconButton(
                       iconSize: 50,
                       color: Colors.white,
-                      icon: AnimatedIcon(icon: AnimatedIcons.play_pause, progress: animationController),
+                      icon: AnimatedIcon(icon: AnimatedIcons.pause_play, progress: animationController),
                       onPressed: () async{
                         _handleOnPressed();
                       },
@@ -264,11 +297,9 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                     onTap: () async {
                       //ileri gitmek için geri gitmeyle aynı
                       audioPlayer.next(keepLoopMode:true);
-
                       setState(() {
                         title = audioPlayer.current.value.audio.audio.metas.title;
                         artist = audioPlayer.current.value.audio.audio.metas.artist;
-                        songduration = audioPlayer.current.value.audio.duration;
                       });
                     },
                     child: CircleAvatar(
@@ -284,6 +315,15 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
         ),
 
       ),
+    );
+  }
+
+  String currentPosition(){
+    PlayerBuilder.currentPosition(
+        player: audioPlayer,
+        builder: (context, duration) {
+          return Text(duration.toString());
+        }
     );
   }
 
@@ -306,11 +346,11 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
       audioPlayer.playOrPause();
 
       if(audioPlayer.playerState.value == PlayerState.play){
-        animationController.reverse();
+        animationController.forward();
       }
       else if(audioPlayer.playerState.value == PlayerState.pause){
 
-        animationController.forward();
+        animationController.reverse();
       }
 
     });

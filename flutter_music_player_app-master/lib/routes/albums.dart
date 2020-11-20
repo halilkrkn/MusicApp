@@ -27,33 +27,23 @@ class _AlbumsState extends State<Albums> {
   int i = 0;
   bool songsadded = false;
   List<Song> songs = [];
-  List<String> durations = [];
   Playlist playlist;
 
 
   final FlutterAudioQuery audioQuery = FlutterAudioQuery();
 
-  //Şarkının Özelliklerini getirme
-  Future<Playlist> getSongProperties() async {
+  Future<List<Song>> getSongProperties() async {
     var songsquery = await audioQuery.getSongs();
-    await addSongsToPlaylist(songsquery);
-    return playlist;
-}
-
-  Future<Void> addSongsToPlaylist(var songsquery) async {
     if(songsadded == false) {
       for (var s in songsquery) {
 
-        Audio temp = new Audio(s.filePath,metas:Metas(
-            title: s.title,
-            artist: s.artist,
-            image: MetasImage.file(s.albumArtwork)
-        ));
-        durations.add(s.duration);
-        playlist.add(temp);
+        Song tempsong = Song(s.id, s.title, s.artist, s.duration,s.filePath,s.albumArtwork);
+        songs.add(tempsong);
+
       }
       songsadded = true;
     }
+    print(songs.length);
   }
 
   @override
@@ -89,17 +79,14 @@ class _AlbumsState extends State<Albums> {
     return FutureBuilder(
       future: getSongProperties(),
       builder: (context,AsyncSnapshot snapshot){
-        if(playlist.audios == null){
-          return Center(child: Container(
-            height: 50,
-              width: 50,
-              child: CircularProgressIndicator()));
+        if(songs.length <= 0){
+          return CircularProgressIndicator();
         }
         else{
           return ListView.builder(
-            itemCount: playlist.audios.length,
+            itemCount: songs.length,
             itemBuilder: (BuildContext context,int index){
-              return Padding(padding: EdgeInsets.fromLTRB(8, 0, 8, 8),child : playListCard("assets/godzillaeminem.png" ,playlist.audios[index].metas.title,playlist.audios[index].metas.artist,durations[index],playlist.audios[index].path,index));
+              return playListCard("assets/godzillaeminem.png" ,songs[index].title,songs[index].artist,songs[index].duration,songs[index].url,index);
             },
           );
         }
@@ -116,7 +103,7 @@ class _AlbumsState extends State<Albums> {
       onTap: (){
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player:widget.audioPlayer,playlistsongs: playlist,index: index,)),
+          MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player:widget.audioPlayer,songs: songs,index: index,)),
         );
       },
       child: Container(
