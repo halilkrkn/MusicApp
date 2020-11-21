@@ -4,10 +4,13 @@ import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_audio_query/flutter_audio_query.dart';
 import 'package:flutter_music_player_app/models/GetSongs.dart';
 import 'package:flutter_music_player_app/models/PlayerArguments.dart';
 import 'package:flutter_music_player_app/models/PlayerNowPlaying.dart';
+import 'package:flutter_music_player_app/models/Song.dart';
 import 'package:flutter_music_player_app/routes/favourites.dart';
+import 'package:flutter_music_player_app/screens/loadingScreen.dart';
 import 'package:flutter_music_player_app/screens/player.dart';
 
 import 'albums.dart';
@@ -25,21 +28,62 @@ class MusicHome extends StatefulWidget {
 class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   static TabController tabController;
   AnimationController animationController;
-  bool isPlaying = false;
   AssetsAudioPlayer player = AssetsAudioPlayer.newPlayer();
-  NowPlayingSong nw;
-  StreamSubscription _onPlayerStateChanged;
+  bool songsadded = false;
+  List<Song> songs = [];
+  int index;
+  final List<StreamSubscription> _subscriptions = [];
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     tabController = TabController(length: 4, vsync: this,initialIndex: widget.initialPage);
     animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
+    _subscriptions.add(player.current.listen((data) {
+      setState(() {
+        index = data.index;
+      });
+    }));
+    _subscriptions.add(player.playlistAudioFinished.listen((data) {
+      setState(() {
+        index = data.index+1;
+      });
+    }));
+  }
+
+
+
+  final FlutterAudioQuery audioQuery = FlutterAudioQuery();
+
+  Future<List<Song>> getSongProperties() async {
+    var songsquery = await audioQuery.getSongs();
+    if(songsadded == false) {
+      for (var s in songsquery) {
+        Song tempsong = Song(s.id, s.title, s.artist, s.duration,s.filePath,s.albumArtwork);
+        songs.add(tempsong);
+      }
+      songsadded = true;
+    }
+    print(songs.length);
   }
 
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    return FutureBuilder(
+      future: getSongProperties(),
+      builder: (context,AsyncSnapshot snapshot){
+        if(songs.length <= 0){
+          return loadingScreen(); //şarkıları alırken yükleme ekranı göster
+        }
+        else{
+          return loadedWidget(width); //eğer şarkılar çekilmişse ekran gelsin
+        }
+      },
+    );
+  }
+
+  Widget loadedWidget(width){
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,28 +102,28 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
           Padding(
             padding: const EdgeInsets.fromLTRB(15, 15, 0, 10),
             child: Text("Browse", style: TextStyle(
-              color: Colors.black,
-              fontFamily: 'Nunito-Regular',
-              fontSize: 40
+                color: Colors.black,
+                fontFamily: 'Nunito-Regular',
+                fontSize: 40
             ),),
           ),
 
           TabBar(
-            controller: tabController,
-            indicatorColor: Colors.blue[900],
+              controller: tabController,
+              indicatorColor: Colors.blue[900],
               indicatorWeight: 2.0,
               indicatorSize: TabBarIndicatorSize.label,
               labelColor: Colors.black,
               labelStyle: TextStyle(
-                fontWeight: FontWeight.bold
+                  fontWeight: FontWeight.bold
               ),
               unselectedLabelColor: Colors.grey,
               isScrollable: true,
               tabs: <Widget>[
                 Tab(
                   child: Text("ALBUMS", style: TextStyle(
-                    fontSize: 15,
-                    fontFamily: 'Nunito'
+                      fontSize: 15,
+                      fontFamily: 'Nunito'
                   ),),
                 ),
                 Tab(
@@ -100,77 +144,85 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
                       fontFamily: 'Nunito'
                   ),),
                 ),
-          ]),
+              ]),
           Expanded(
             child: Container(
               child: TabBarView(
-                controller: tabController,
+                  controller: tabController,
                   children: <Widget>[
-                    Albums(audioPlayer: player),
+                    Albums(audioPlayer: player,songs: songs,),
                     Artists(),
                     Folders(),
                     Favourites(),
                   ]),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child:  InkWell(
-              onTap: (){
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.only(topRight: Radius.circular(15.0),topLeft: Radius.circular(15.0)),
-                child: Container(
-                  height: 65,
-                  width : width,
-                  color: Colors.orange,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _albumCard("assets/dontdualipa.jpg"),
-                        SizedBox(width: 10.0,),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text('Music Name', style: TextStyle(
-                                fontFamily: 'Nunito',
-                                fontSize: 20,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold
-                            ),),
-                            Text('artist', style: TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 15,
-                              color: Colors.black,
-                            ),),
-                          ],
-                        ),
-                        Spacer(),
-                        CircleAvatar(
-                          backgroundColor: Colors.black87,
-                          radius: 26.0,
-                          child: IconButton(
-                            iconSize: 36,
-                            color: Colors.white,
-                            icon: AnimatedIcon(icon: AnimatedIcons.play_pause, progress: animationController),
-                            onPressed: (){
-                              _handleOnPressed();
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 10.0,),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          bottomMusicBar(width),
         ],
       ),
 
+    );
+  }
+
+  Widget bottomMusicBar(width){
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child:  InkWell(
+        onTap: (){
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => Player(image: "assets/godzillaeminem.png",player:player,songs: songs,index: index,)),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(topRight: Radius.circular(15.0),topLeft: Radius.circular(15.0)),
+          child: Container(
+            height: 65,
+            width : width,
+            color: Colors.orange,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _albumCard("assets/dontdualipa.jpg"),
+                  SizedBox(width: 10.0,),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('Music Name', style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 20,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold
+                      ),),
+                      Text('artist', style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 15,
+                        color: Colors.black,
+                      ),),
+                    ],
+                  ),
+                  Spacer(),
+                  CircleAvatar(
+                    backgroundColor: Colors.black87,
+                    radius: 26.0,
+                    child: IconButton(
+                      iconSize: 36,
+                      color: Colors.white,
+                      icon: AnimatedIcon(icon: AnimatedIcons.play_pause, progress: animationController),
+                      onPressed: (){
+                        _handleOnPressed();
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 10.0,),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

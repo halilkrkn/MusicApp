@@ -1,19 +1,13 @@
 import 'dart:async';
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_music_player_app/models/PlayerNowPlaying.dart';
 import 'package:flutter_music_player_app/models/Song.dart';
 
 
 class Player extends StatefulWidget {
-  Player({Key key,this.songName,this.singer,this.image,this.duration, this.songPath, this.player, this.songs, this.index}) : super(key: key);
-  final String songName;
-  final String singer;
+  Player({Key key,this.image, this.player, this.songs, this.index}) : super(key: key);
   final String image;
-  final String duration;
-  final String songPath;
   final AssetsAudioPlayer player;
   final List<Song> songs;
   final int index;
@@ -24,23 +18,18 @@ class Player extends StatefulWidget {
 class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
 
   int durationOnPause = 0;
-  double _value = 0.0;
-  String title;
-  String artist;
   String albumImage;
-  String songduration;
-  String url;
   AssetsAudioPlayer audioPlayer;
   Playlist playList;
   int index;
-  String durationnow = "0";
-  List<Audio> audiosongs = [];
   GlobalKey<FlipCardState> cardKey;
+  List<Audio> audiosongs;
+  String title;
+  String artist;
   final List<StreamSubscription> _subscriptions = [];
 
   AnimationController animationController;
   bool isPlaying = true;
-
   Duration _duration;
   Duration _position;
 
@@ -49,10 +38,7 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
     // TODO: implement initState
     super.initState();
     //müziğin detaylarını alıyorum
-    title = widget.songName;
-    artist = widget.singer;
     albumImage = widget.image;
-    url = widget.songPath;
     audioPlayer = widget.player;
 
     getAudios().then((List<Audio> result){
@@ -247,8 +233,6 @@ class _PlayerState extends State<Player> with SingleTickerProviderStateMixin{
                       onChanged: (v) {
                         final Position = v * _duration.inMilliseconds;
                         audioPlayer.seek(Duration(milliseconds: Position.round()));
-                        durationnow = Position.toString();
-                        durationnow = formatMillitoDisplay(durationnow);
                       },
                     ),
                   ),

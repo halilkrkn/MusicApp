@@ -1,20 +1,18 @@
 import 'dart:ffi';
 
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_audio_query/flutter_audio_query.dart';
 import 'package:flutter_music_player_app/models/Song.dart';
 import 'package:flutter_music_player_app/routes/musichome.dart';
-import 'dart:async';
 
 import 'package:flutter_music_player_app/screens/player.dart';
 
 class Albums extends StatefulWidget {
-  Albums({Key key, this.title, this.audioPlayer}) : super(key: key);
+  Albums({Key key, this.title, this.audioPlayer, this.songs}) : super(key: key);
   final AssetsAudioPlayer audioPlayer;
   final String title;
+  final List<Song> songs;
   final musichome = MusicHome();
   @override
   _AlbumsState createState() => _AlbumsState();
@@ -24,31 +22,10 @@ class _AlbumsState extends State<Albums> {
 
   bool havefavourite = false;
   double height = 150;
-  int i = 0;
-  bool songsadded = false;
-  List<Song> songs = [];
-  Playlist playlist;
-
-
-  final FlutterAudioQuery audioQuery = FlutterAudioQuery();
-
-  Future<List<Song>> getSongProperties() async {
-    var songsquery = await audioQuery.getSongs();
-    if(songsadded == false) {
-      for (var s in songsquery) {
-
-        Song tempsong = Song(s.id, s.title, s.artist, s.duration,s.filePath,s.albumArtwork);
-        songs.add(tempsong);
-
-      }
-      songsadded = true;
-    }
-    print(songs.length);
-  }
-
+  List<Song> songs;
   @override
   void initState() {
-
+    songs = widget.songs;
     // TODO: implement initState
    super.initState();
   }
@@ -76,20 +53,10 @@ class _AlbumsState extends State<Albums> {
 
   // Play List
   Widget getPlaylistList(){
-    return FutureBuilder(
-      future: getSongProperties(),
-      builder: (context,AsyncSnapshot snapshot){
-        if(songs.length <= 0){
-          return CircularProgressIndicator();
-        }
-        else{
-          return ListView.builder(
-            itemCount: songs.length,
-            itemBuilder: (BuildContext context,int index){
-              return playListCard("assets/godzillaeminem.png" ,songs[index].title,songs[index].artist,songs[index].duration,songs[index].url,index);
-            },
-          );
-        }
+    return ListView.builder(
+      itemCount: songs.length,
+      itemBuilder: (BuildContext context,int index){
+        return playListCard("assets/godzillaeminem.png",index);
       },
     );
   }
@@ -97,13 +64,13 @@ class _AlbumsState extends State<Albums> {
 
 
   // Songs - PLayList Kısmı
-  playListCard(String asset, String title, String artist, String duration,String url,int index) {
-    final alreadySaved = favourites.contains(title);
+  playListCard(String asset,int index) {
+    //final alreadySaved = favourites.contains(title);
     return InkWell(
       onTap: (){
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => Player(singer: artist,songName: title,duration: duration,songPath: url,image: asset,player:widget.audioPlayer,songs: songs,index: index,)),
+          MaterialPageRoute(builder: (context) => Player(image: asset,player:widget.audioPlayer,songs: songs,index: index,)),
         );
       },
       child: Container(
@@ -117,13 +84,13 @@ class _AlbumsState extends State<Albums> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(title.length > 20 ? title.substring(0,20) : title, style: TextStyle(
+                Text(songs[index].title.length > 20 ? songs[index].title.substring(0,20) : songs[index].title, style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 20,
                     color: Colors.black,
                     fontWeight: FontWeight.bold
                 ),),
-                Text(artist.length > 15 ? artist.substring(0,15) : artist, style: TextStyle(
+                Text(songs[index].artist.length > 15 ? songs[index].artist.substring(0,15) : songs[index].artist, style: TextStyle(
                   fontFamily: 'Nunito',
                   fontSize: 20,
                   color: Colors.black,
@@ -131,7 +98,7 @@ class _AlbumsState extends State<Albums> {
               ],
             ),
             Spacer(),
-            Text(formatMillitoDisplay(duration), style: TextStyle(
+            Text(formatMillitoDisplay(songs[index].duration), style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 20,
                 color: Colors.black
@@ -139,17 +106,11 @@ class _AlbumsState extends State<Albums> {
             SizedBox(width: 15.0,),
             InkWell(
               onTap: (){
-                setState(() {
-                  if (alreadySaved) {
-                    favourites.remove(asset);
-                  } else {
-                    favourites.add(asset);
-                  }
-                });
+                //favori kısmı
               },
               child: Icon(
-                alreadySaved ? Icons.favorite : Icons.favorite_border,
-                color: alreadySaved ? Colors.red : null,
+                Icons.favorite,
+                color: Colors.red,
               ),
             ),
           ],
