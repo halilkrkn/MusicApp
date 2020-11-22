@@ -1,18 +1,14 @@
 import 'dart:async';
 
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_audio_query/flutter_audio_query.dart';
-import 'package:flutter_music_player_app/models/GetSongs.dart';
-import 'package:flutter_music_player_app/models/PlayerArguments.dart';
-import 'package:flutter_music_player_app/models/PlayerNowPlaying.dart';
 import 'package:flutter_music_player_app/models/Song.dart';
 import 'package:flutter_music_player_app/routes/favourites.dart';
 import 'package:flutter_music_player_app/screens/loadingScreen.dart';
 import 'package:flutter_music_player_app/screens/player.dart';
-
+import 'package:marquee/marquee.dart';
 import 'albums.dart';
 import 'artists.dart';
 import 'folders.dart';
@@ -31,7 +27,11 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   AssetsAudioPlayer player = AssetsAudioPlayer.newPlayer();
   bool songsadded = false;
   List<Song> songs = [];
+  List<Audio> audiosongs = [];
+  String title;
+  String artist;
   int index;
+  bool loaded = false;
   final List<StreamSubscription> _subscriptions = [];
   @override
   void initState() {
@@ -49,13 +49,26 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
         index = data.index+1;
       });
     }));
+    _subscriptions.add(player.current.listen((data) {
+      setState(() {
+        title = data.audio.audio.metas.title;
+        artist = data.audio.audio.metas.artist;
+      });
+    }));
+    _subscriptions.add(player.onReadyToPlay.listen((audio) {
+      print("onRedayToPlay : $audio");
+      setState(() {
+        title = audio.audio.metas.title;
+        artist = audio.audio.metas.artist;
+      });
+    }));
   }
 
 
 
   final FlutterAudioQuery audioQuery = FlutterAudioQuery();
 
-  Future<List<Song>> getSongProperties() async {
+  Future<List<Audio>> getSongProperties() async {
     var songsquery = await audioQuery.getSongs();
     if(songsadded == false) {
       for (var s in songsquery) {
@@ -64,7 +77,15 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
       }
       songsadded = true;
     }
-    print(songs.length);
+    for(Song s in songs){
+      Audio temp = new Audio.file(s.url,metas:Metas(
+          title: s.title,
+          artist: s.artist,
+          image: MetasImage.file("assets/billieellish.jpg")
+      ));
+      audiosongs.add(temp);
+    }
+    return audiosongs;
   }
 
   @override
@@ -150,14 +171,14 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
               child: TabBarView(
                   controller: tabController,
                   children: <Widget>[
-                    Albums(audioPlayer: player,songs: songs,),
+                    Albums(audioPlayer: player,songs: songs,audiosongs: audiosongs,),
                     Artists(),
                     Folders(),
                     Favourites(),
                   ]),
             ),
           ),
-          bottomMusicBar(width),
+          (player.playerState.value == PlayerState.play || player.playerState.value == PlayerState.pause) ? bottomMusicBar(width) : Container(),
         ],
       ),
 
@@ -171,7 +192,7 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
         onTap: (){
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => Player(image: "assets/godzillaeminem.png",player:player,songs: songs,index: index,)),
+            MaterialPageRoute(builder: (context) => Player(image: audiosongs[index].metas.image.path,player:player,songs: audiosongs,index: index,isplaying:true,)),
           );
         },
         child: ClipRRect(
@@ -185,22 +206,57 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _albumCard("assets/dontdualipa.jpg"),
+                  _albumCard(audiosongs[index].metas.image.path),
                   SizedBox(width: 10.0,),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Music Name', style: TextStyle(
-                          fontFamily: 'Nunito',
-                          fontSize: 20,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold
-                      ),),
-                      Text('artist', style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 15,
-                        color: Colors.black,
-                      ),),
+                      Container(
+                          height: 28,
+                          width: MediaQuery.of(context).size.width/2+50,
+                          child : Marquee(
+                            text: title,
+                            style: TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 20,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold
+                            ),
+                            scrollAxis: Axis.horizontal,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            blankSpace: 10.0,
+                            velocity: 30.0,
+                            pauseAfterRound: Duration(seconds: 1),
+                            startPadding: 0.0,
+                            accelerationDuration: Duration(seconds: 2),
+                            accelerationCurve: Curves.linear,
+                            decelerationDuration: Duration(milliseconds: 500),
+                            decelerationCurve: Curves.easeOut,
+                          )
+                      ),
+                      Container(
+                          height: 20,
+                          width: MediaQuery.of(context).size.width/2+40,
+                          child : Marquee(
+                            text: artist,
+                            style: TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 15,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold
+                            ),
+                            scrollAxis: Axis.horizontal,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            blankSpace: 10.0,
+                            velocity: 30.0,
+                            pauseAfterRound: Duration(seconds: 1),
+                            startPadding: 0.0,
+                            accelerationDuration: Duration(seconds: 2),
+                            accelerationCurve: Curves.linear,
+                            decelerationDuration: Duration(milliseconds: 500),
+                            decelerationCurve: Curves.easeOut,
+                          )
+                      ),
                     ],
                   ),
                   Spacer(),
@@ -208,9 +264,9 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
                     backgroundColor: Colors.black87,
                     radius: 26.0,
                     child: IconButton(
-                      iconSize: 36,
+                      iconSize: 28,
                       color: Colors.white,
-                      icon: AnimatedIcon(icon: AnimatedIcons.play_pause, progress: animationController),
+                      icon: AnimatedIcon(icon: AnimatedIcons.pause_play, progress: animationController),
                       onPressed: (){
                         _handleOnPressed();
                       },
@@ -241,17 +297,18 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   }
 
   void _handleOnPressed(){ //oynat durdur basıldığında çalışan kısım
-    // setState(() async {
-    //  // var state = audioPlayer.state;
-    //   if(state == AudioPlayerState.PAUSED){
-    //     await audioPlayer.resume();
-    //     animationController.reverse();
-    //   }
-    //   else if(state == AudioPlayerState.PLAYING){
-    //     await audioPlayer.pause();
-    //     animationController.forward();
-    //   }
-    // });
+    setState(() async {
+      player.playOrPause();
+
+      if(player.playerState.value == PlayerState.play){
+        animationController.forward();
+      }
+      else if(player.playerState.value == PlayerState.pause){
+
+        animationController.reverse();
+      }
+
+    });
   }
 
   void _nextPage(int tab) {

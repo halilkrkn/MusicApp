@@ -2,6 +2,7 @@ import 'dart:ffi';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player_app/routes/musichome.dart';
+import 'package:flutter_music_player_app/screens/loadingScreen.dart';
 import 'package:flutter_music_player_app/screens/player.dart';
 import 'package:flutter/services.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
@@ -25,8 +26,9 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       initialRoute: '/home',
       routes: {
-        '/home': (context) => MusicHome(initialPage:0,),
+        '/loading': (context) => loadingScreen(),
         '/player': (context) => Player(),
+        '/home': (context) => MusicHome(initialPage:0,),
       },
     );
   }

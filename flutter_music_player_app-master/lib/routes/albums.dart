@@ -7,12 +7,14 @@ import 'package:flutter_music_player_app/models/Song.dart';
 import 'package:flutter_music_player_app/routes/musichome.dart';
 
 import 'package:flutter_music_player_app/screens/player.dart';
+import 'package:marquee/marquee.dart';
 
 class Albums extends StatefulWidget {
-  Albums({Key key, this.title, this.audioPlayer, this.songs}) : super(key: key);
+  Albums({Key key, this.title, this.audioPlayer, this.songs, this.audiosongs}) : super(key: key);
   final AssetsAudioPlayer audioPlayer;
   final String title;
   final List<Song> songs;
+  final List<Audio> audiosongs;
   final musichome = MusicHome();
   @override
   _AlbumsState createState() => _AlbumsState();
@@ -23,9 +25,11 @@ class _AlbumsState extends State<Albums> {
   bool havefavourite = false;
   double height = 150;
   List<Song> songs;
+  List<Audio> audiosongs;
   @override
   void initState() {
     songs = widget.songs;
+    audiosongs = widget.audiosongs;
     // TODO: implement initState
    super.initState();
   }
@@ -56,7 +60,7 @@ class _AlbumsState extends State<Albums> {
     return ListView.builder(
       itemCount: songs.length,
       itemBuilder: (BuildContext context,int index){
-        return playListCard("assets/godzillaeminem.png",index);
+        return playListCard(audiosongs[index].metas.image.path,index);
       },
     );
   }
@@ -70,50 +74,75 @@ class _AlbumsState extends State<Albums> {
       onTap: (){
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => Player(image: asset,player:widget.audioPlayer,songs: songs,index: index,)),
+          MaterialPageRoute(builder: (context) => Player(image: asset,player:widget.audioPlayer,songs: audiosongs,index: index,isplaying: false,)),
         );
       },
       child: Container(
-        child: Row(
-          children: <Widget>[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10.0),
-              child: Image.asset(asset, fit: BoxFit.cover, height:70, width: 70,),
-            ),
-            SizedBox(width: 10.0,),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(songs[index].title.length > 20 ? songs[index].title.substring(0,20) : songs[index].title, style: TextStyle(
+        child: Padding(
+          padding: index == 0 ? const EdgeInsets.only(top: 0,bottom: 4) : const EdgeInsets.only(top: 4,bottom: 4),
+          child: Row(
+            children: <Widget>[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10.0),
+                child: Image.asset(asset, fit: BoxFit.cover, height:MediaQuery.of(context).size.width/6, width: MediaQuery.of(context).size.width/5,),
+              ),
+              Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    height: 30,
+                    width: MediaQuery.of(context).size.width/2,
+                      child : Marquee(
+                        text: songs[index].title,
+                        style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 20,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold
+                        ),
+                        scrollAxis: Axis.horizontal,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        blankSpace: 10.0,
+                        velocity: 40.0,
+                        pauseAfterRound: Duration(seconds: 1),
+                        startPadding: 0.0,
+                        accelerationDuration: Duration(seconds: 2),
+                        accelerationCurve: Curves.linear,
+                        decelerationDuration: Duration(milliseconds: 500),
+                        decelerationCurve: Curves.easeOut,
+                      )
+                  ),
+                  Container(
+                    child: Text(songs[index].artist.length > 15 ? songs[index].artist.substring(0,15) : songs[index].artist, style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 20,
+                      color: Colors.black,
+                    ),),
+                  ),
+                ],
+              ),
+              Spacer(),
+              Container(
+                height: 30,
+                width: MediaQuery.of(context).size.width/6,
+                child: Text(formatMillitoDisplay(songs[index].duration), style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 20,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold
+                    color: Colors.black
                 ),),
-                Text(songs[index].artist.length > 15 ? songs[index].artist.substring(0,15) : songs[index].artist, style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 20,
-                  color: Colors.black,
-                ),),
-              ],
-            ),
-            Spacer(),
-            Text(formatMillitoDisplay(songs[index].duration), style: TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 20,
-                color: Colors.black
-            ),),
-            SizedBox(width: 15.0,),
-            InkWell(
-              onTap: (){
-                //favori kısmı
-              },
-              child: Icon(
-                Icons.favorite,
-                color: Colors.red,
               ),
-            ),
-          ],
+              InkWell(
+                onTap: (){
+                  //favori kısmı
+                },
+                child: Icon(
+                  Icons.favorite,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
