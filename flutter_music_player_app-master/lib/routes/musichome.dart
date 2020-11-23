@@ -32,6 +32,7 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   String artist;
   int index;
   bool loaded = false;
+  List<List<Audio>> foldersongs = [];
   final List<StreamSubscription> _subscriptions = [];
   @override
   void initState() {
@@ -77,6 +78,31 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
       }
       songsadded = true;
     }
+    var tempfolderarray;
+    var tempfolder;
+    var newfolder;
+    bool first = true;
+      List<Audio> tempaudiolist = [];
+        for(int i = 0;i<songs.length;i++){
+          tempfolderarray = songs[i].url.split('/');
+          tempfolder = tempfolderarray[tempfolderarray.length-2];
+          if(tempfolder == newfolder || first == true){
+            Audio temp = new Audio.file(songs[i].url,metas:Metas(
+                title: songs[i].title,
+                artist: songs[i].artist,
+                image: MetasImage.file("assets/billieellish.jpg")
+            ));
+            tempaudiolist.add(temp);
+            if(first == true)
+              first = false;
+          }
+          else{
+            foldersongs.add(tempaudiolist);
+            tempaudiolist = [];
+            i--;
+          }
+          newfolder = tempfolder;
+        }
     for(Song s in songs){
       Audio temp = new Audio.file(s.url,metas:Metas(
           title: s.title,
