@@ -1,7 +1,5 @@
 import 'dart:async';
-
 import 'package:assets_audio_player/assets_audio_player.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_audio_query/flutter_audio_query.dart';
 import 'package:flutter_music_player_app/models/Song.dart';
@@ -32,8 +30,13 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
   String artist;
   int index;
   bool loaded = false;
+  List<String> foldernames = [];
   List<List<Audio>> foldersongs = [];
+  var first = false;
+  var firstfolder = true;
   final List<StreamSubscription> _subscriptions = [];
+
+
   @override
   void initState() {
     // TODO: implement initState
@@ -78,31 +81,35 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
       }
       songsadded = true;
     }
-    var tempfolderarray;
-    var tempfolder;
-    var newfolder;
-    bool first = true;
-      List<Audio> tempaudiolist = [];
-        for(int i = 0;i<songs.length;i++){
-          tempfolderarray = songs[i].url.split('/');
-          tempfolder = tempfolderarray[tempfolderarray.length-2];
-          if(tempfolder == newfolder || first == true){
-            Audio temp = new Audio.file(songs[i].url,metas:Metas(
-                title: songs[i].title,
-                artist: songs[i].artist,
+    var foldername = "";
+    for(Song s in songs) {
+      var foldereditedarr = s.url.split('/');
+      var folderedited = foldereditedarr[foldereditedarr.length - 2];
+      if (!(foldernames.contains(folderedited)) || first == false) {
+        first = true;
+        foldernames.add(folderedited);
+      }
+    }
+    print(foldernames);
+    if(firstfolder){
+      for(int i = 0;i<foldernames.length;i++){
+        List<Audio> templist = [];
+        for(Song s in songs){
+          var foldereditedarr = s.url.split('/');
+          var folderedited = foldereditedarr[foldereditedarr.length - 2];
+          if(foldernames[i].contains(folderedited)){
+            Audio temp = new Audio.file(s.url,metas:Metas(
+                title: s.title,
+                artist: s.artist,
                 image: MetasImage.file("assets/billieellish.jpg")
             ));
-            tempaudiolist.add(temp);
-            if(first == true)
-              first = false;
+            templist.add(temp);
           }
-          else{
-            foldersongs.add(tempaudiolist);
-            tempaudiolist = [];
-            i--;
-          }
-          newfolder = tempfolder;
         }
+        foldersongs.add(templist);
+      }
+      firstfolder = false;
+    }
     for(Song s in songs){
       Audio temp = new Audio.file(s.url,metas:Metas(
           title: s.title,
@@ -197,9 +204,9 @@ class _MusicHomeState extends State<MusicHome> with TickerProviderStateMixin{
               child: TabBarView(
                   controller: tabController,
                   children: <Widget>[
-                    Albums(audioPlayer: player,songs: songs,audiosongs: audiosongs,),
+                    Albums(audioPlayer: player,songs: songs,audiosongs: audiosongs),
                     Artists(),
-                    Folders(),
+                    Folders(audiolist: foldersongs,foldernames: foldernames,player: player,),
                     Favourites(),
                   ]),
             ),
